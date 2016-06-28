@@ -3,14 +3,23 @@
 
 const int ir_receiver_signalPin   = 3;
 
-const int motor_controller_AIAPin = 8;
-const int motor_controller_AIBPin = 7;
-const int motor_controller_BIAPin = 2;
-const int motor_controller_BIBPin = 4;
-const int motor_controller_speed  = 255;
+const int motor_controller_AIAPin = 5;
+const int motor_controller_AIBPin = 6;
+const int motor_controller_BIAPin = 9;
+const int motor_controller_BIBPin = 10; // PWM Pins
 
 const int ultrasonic_sensor_trigPin = 2;
 const int ultrasonic_sensor_echoPin = 12;
+
+const int IR_RECEIVE_LEDPin         = 4;
+
+const int motor_controller_speed  = 255;
+
+const int IR_UP 		= 0xFF629D;
+const int IR_DOWN 		= 0xFF329D;
+const int IR_LEFT 		= 0xFF229D;
+const int IR_RIGHT 		= 0xFF129D;
+
 
 /*-----( Declare objects )-----*/
 IRrecv irrecv(ir_receiver_signalPin);     // create instance of 'irrecv'
@@ -18,22 +27,74 @@ decode_results results;      			  // create instance of 'decode_results'
 
 boolean debug = false;
 
-/* RUNS ONCE */
+/**
+ *  NanoBot - 
+ *
+ *  This basic application is a starting place for using the 3D printed two-wheeled robot 
+ *  found here ( http://www.thingiverse.com/thing:1582398 ). 
+ * 
+ *  The hardware used in this project is listed below:
+ *  
+ *  Arduino nano (clone)
+ *  Motor Controller (L9110S Dual DC motor Driver Controller Board H-bridge)
+ *  Distance Measurment ( Ultrasonic Module HC-SR04 Distance Measuring )
+ *  Smart Car Robot Plastic DC 3V-6V Drive Gear Motor 
+ *  IR Remote ( Infrared Wireless Remote Control with Sensor Receiver Modules 3 pin variety )
+ * 
+ *  
+ * 
+ ** /
+
 void setup()
 {
+  
+	
+  pinMode(IR_RECEIVE_LEDPin, OUTPUT);
+  pinMode(ultrasonic_sensor_trigPin, OUTPUT);
+  
+  pinMode(motor_controller_AIAPin, OUTPUT);
+  pinMode(motor_controller_AIBPin, OUTPUT);
+  pinMode(motor_controller_BIAPin, OUTPUT);
+  pinMode(motor_controller_BIBPin, OUTPUT);
+  
+  pinMode(ultrasonic_sensor_echoPin, INPUT); 
+  pinMode(ultrasonic_sensor_echoPin, INPUT); 
+  
+
   if (debug) {
   	Serial.begin(9600);  
   	Serial.println("IR Receiver Button Decode"); 
   }
   
+  fadeLED( IR_RECEIVE_LEDPin );
+  
   initialize_motor_driver();
   
   //Timer1.initialize(TIMER_US);                        // Initialise timer 1
   //Timer1.attachInterrupt( timerIsr );
-  
-  attachInterrupt(digitalPinToInterrupt(ultrasonic_sensor_trigPin), checkDistance, CHANGE);
+  //attachInterrupt(digitalPinToInterrupt(ultrasonic_sensor_trigPin), checkDistance, CHANGE);
   
   irrecv.enableIRIn(); // Start the receiver
+}
+
+void fadeLED( int ledPin ) {
+
+ // fade in from min to max in increments of 5 points:
+  for(int fadeValue = 0 ; fadeValue <= 255; fadeValue +=5) { 
+    // sets the value (range from 0 to 255):
+    analogWrite(ledPin, fadeValue);         
+    // wait for 30 milliseconds to see the dimming effect    
+    delay(30);                            
+  } 
+ 
+  // fade out from max to min in increments of 5 points:
+  for(int fadeValue = 255 ; fadeValue >= 0; fadeValue -=5) { 
+    // sets the value (range from 0 to 255):
+    analogWrite(ledPin, fadeValue);         
+    // wait for 30 milliseconds to see the dimming effect    
+    delay(30);                            
+  } 
+
 }
 
 void initialize_motor_driver()
@@ -104,54 +165,48 @@ void loop()
 
   //  Serial.println( results.value); 
     
-    translateIR(); 
+    react(); 
     irrecv.resume(); // receive the next value
   }  
 }
 
-/*-----( Function )-----*/
-void translateIR() // takes action based on IR code received
+
+void react() 
 {
 
   switch(results.value)
   {
-  case 0xFF629D: Serial.println(" FORWARD"); break;
-  case 0xFF22DD: Serial.println(" LEFT");    break;
-  case 0xFF02FD: Serial.println(" -OK-");    break;
-  case 0xFFC23D: Serial.println(" RIGHT");   break;
-  case 0xFFA857: Serial.println(" REVERSE"); break;
-  case 0xFF6897: Serial.println(" 1");    break;
-  case 0xFF9867: Serial.println(" 2");    break;
-  case 0xFFB04F: Serial.println(" 3");    break;
-  case 0xFF30CF: Serial.println(" 4");    break;
-  case 0xFF18E7: Serial.println(" 5");    break;
-  case 0xFF7A85: Serial.println(" 6");    break;
-  case 0xFF10EF: Serial.println(" 7");    break;
-  case 0xFF38C7: Serial.println(" 8");    break;
-  case 0xFF5AA5: Serial.println(" 9");    break;
-  case 0xFF42BD: Serial.println(" *");    break;
-  case 0xFF4AB5: Serial.println(" 0");    break;
-  case 0xFF52AD: Serial.println(" #");    break;
-  case 0xFFFFFFFF: Serial.println(" REPEAT");break;  
+  case IR_UP:
+	go_forward();
+	break;
+  case IR_DOWN:
+	go_backward();
+	break;
+  case IR_LEFT:
+	go_left();
+	break;
+  case IR_RIGHT:
+	go_right();
+	break;
 
   default: 
-    Serial.println(" other button   " );
-    Serial.print( results.value, HEX );
-    
+  
+	if (debug) {
+		Serial.println(" other button   " );
+		Serial.print( results.value, HEX );
+	}
 
   }// End Case
 
   delay(500); // Do not get immediate repeat
 
 
-} //END translateIR
-
+}
 
 long checkDistance()
 {
-	 // establish variables for duration of the ping, 
+  // establish variables for duration of the ping, 
   // and the distance result in inches and centimeters:
-
 
   // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
@@ -167,7 +222,6 @@ long checkDistance()
   // of the ping to the reception of its echo off of an object.
   pinMode(ultrasonic_sensor_echoPin, INPUT);
   return pulseIn(ultrasonic_sensor_echoPin, HIGH);
-
   
   //Serial.print(inches);
   //Serial.print("in, ");
