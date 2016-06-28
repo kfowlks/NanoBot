@@ -99,18 +99,18 @@ void fadeLED( int ledPin ) {
 
 void initialize_motor_driver()
 {	
-	 pinMode(motor_controller_AIAPin, OUTPUT); // set pins to output
-  	 pinMode(motor_controller_AIBPin, OUTPUT);
-	 pinMode(motor_controller_BIAPin, OUTPUT);
-     pinMode(motor_controller_BIBPin, OUTPUT);
+	pinMode(motor_controller_AIAPin, OUTPUT); // set pins to output
+	pinMode(motor_controller_AIBPin, OUTPUT);
+	pinMode(motor_controller_BIAPin, OUTPUT);
+	pinMode(motor_controller_BIBPin, OUTPUT);
 }
 
 void go_backward()
 {
-  analogWrite(motor_controller_AIAPin, 0);
-  analogWrite(motor_controller_AIBPin, motor_controller_speed);
-  analogWrite(motor_controller_BIAPin, 0);
-  analogWrite(motor_controller_BIBPin, motor_controller_speed);
+	analogWrite(motor_controller_AIAPin, 0);
+	analogWrite(motor_controller_AIBPin, motor_controller_speed);
+	analogWrite(motor_controller_BIAPin, 0);
+	analogWrite(motor_controller_BIBPin, motor_controller_speed);
 }
 
 void go_forward()
@@ -150,28 +150,29 @@ void timerIsr()
 
 void loop()
 {
-  long duration, inches, cm;
+  long duration, cm;
   
   duration = checkDistance();
   
   // convert the time into a distance
   // inches = microsecondsToInches(duration);
   cm     = microsecondsToCentimeters(duration);
-  
-  
+
   //Serial.println( results.value); 
   if (irrecv.decode(&results)) // have we received an IR signal?
   {
 
-  //  Serial.println( results.value); 
+  if ( debug ) 
+     Serial.print( results.value, HEX); 
     
-    react(); 
+    move(); 
+    
     irrecv.resume(); // receive the next value
   }  
 }
 
 
-void react() 
+void move() 
 {
 
   switch(results.value)
