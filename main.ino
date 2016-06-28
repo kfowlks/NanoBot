@@ -1,25 +1,102 @@
 #include "IRremote.h"
+//#include <TimerOne.h>
 
-int receiver = 10; // Signal Pin of IR receiver to Arduino Digital Pin 11
+const int ir_receiver_signalPin   = 3;
+
+const int motor_controller_AIAPin = 8;
+const int motor_controller_AIBPin = 7;
+const int motor_controller_BIAPin = 2;
+const int motor_controller_BIBPin = 4;
+const int motor_controller_speed  = 255;
+
+const int ultrasonic_sensor_trigPin = 2;
+const int ultrasonic_sensor_echoPin = 12;
 
 /*-----( Declare objects )-----*/
-IRrecv irrecv(receiver);     // create instance of 'irrecv'
-decode_results results;      // create instance of 'decode_results'
+IRrecv irrecv(ir_receiver_signalPin);     // create instance of 'irrecv'
+decode_results results;      			  // create instance of 'decode_results'
 
-void setup()   /*----( SETUP: RUNS ONCE )----*/
+boolean debug = false;
+
+/* RUNS ONCE */
+void setup()
 {
-  Serial.begin(9600);
-  Serial.println("IR Receiver Button Decode"); 
+  if (debug) {
+  	Serial.begin(9600);  
+  	Serial.println("IR Receiver Button Decode"); 
+  }
+  
+  initialize_motor_driver();
+  
+  //Timer1.initialize(TIMER_US);                        // Initialise timer 1
+  //Timer1.attachInterrupt( timerIsr );
+  
+  attachInterrupt(digitalPinToInterrupt(ultrasonic_sensor_trigPin), checkDistance, CHANGE);
+  
   irrecv.enableIRIn(); // Start the receiver
+}
 
-}/*--(end setup )---*/
+void initialize_motor_driver()
+{	
+	 pinMode(motor_controller_AIAPin, OUTPUT); // set pins to output
+  	 pinMode(motor_controller_AIBPin, OUTPUT);
+	 pinMode(motor_controller_BIAPin, OUTPUT);
+     pinMode(motor_controller_BIBPin, OUTPUT);
+}
 
-
-void loop()   /*----( LOOP: RUNS CONSTANTLY )----*/
+void go_backward()
 {
+  analogWrite(motor_controller_AIAPin, 0);
+  analogWrite(motor_controller_AIBPin, motor_controller_speed);
+  analogWrite(motor_controller_BIAPin, 0);
+  analogWrite(motor_controller_BIBPin, motor_controller_speed);
+}
+
+void go_forward()
+{
+  analogWrite(motor_controller_AIAPin, motor_controller_speed);
+  analogWrite(motor_controller_AIBPin, 0);
+  analogWrite(motor_controller_BIAPin, motor_controller_speed);
+  analogWrite(motor_controller_BIBPin, 0);
+}
+
+void go_left()
+{
+  analogWrite(motor_controller_AIAPin, motor_controller_speed);
+  analogWrite(motor_controller_AIBPin, 0);
+  analogWrite(motor_controller_BIAPin, 0);
+  analogWrite(motor_controller_BIBPin, motor_controller_speed);
+}
+
+void go_right()
+{
+  analogWrite(motor_controller_AIAPin, 0);
+  analogWrite(motor_controller_AIBPin, motor_controller_speed);
+  analogWrite(motor_controller_BIAPin, motor_controller_speed);
+  analogWrite(motor_controller_BIBPin, 0);
+}
+
+// --------------------------
+// timerIsr() 50uS second interrupt ISR()
+// Called every time the hardware timer 1 times out.
+// --------------------------
+void timerIsr()
+{
+    checkDistance();                                 // Schedule the trigger pulses
+    //distance_flasher();                              // Flash the onboard LED distance indicator
+}
 
 
-   //results.value=0;
+void loop()
+{
+  long duration, inches, cm;
+  
+  duration = checkDistance();
+  
+  // convert the time into a distance
+  // inches = microsecondsToInches(duration);
+  cm     = microsecondsToCentimeters(duration);
+  
   
   //Serial.println( results.value); 
   if (irrecv.decode(&results)) // have we received an IR signal?
@@ -30,19 +107,14 @@ void loop()   /*----( LOOP: RUNS CONSTANTLY )----*/
     translateIR(); 
     irrecv.resume(); // receive the next value
   }  
-}/* --(end main loop )-- */
+}
 
 /*-----( Function )-----*/
 void translateIR() // takes action based on IR code received
-
-// describing Remote IR codes 
-
 {
 
   switch(results.value)
-
   {
-
   case 0xFF629D: Serial.println(" FORWARD"); break;
   case 0xFF22DD: Serial.println(" LEFT");    break;
   case 0xFF02FD: Serial.println(" -OK-");    break;
@@ -73,3 +145,54 @@ void translateIR() // takes action based on IR code received
 
 
 } //END translateIR
+
+
+long checkDistance()
+{
+	 // establish variables for duration of the ping, 
+  // and the distance result in inches and centimeters:
+
+
+  // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
+  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
+  pinMode(ultrasonic_sensor_trigPin, OUTPUT);
+  digitalWrite(ultrasonic_sensor_trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(ultrasonic_sensor_trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(ultrasonic_sensor_trigPin, LOW);
+
+  // Read the signal from the sensor: a HIGH pulse whose
+  // duration is the time (in microseconds) from the sending
+  // of the ping to the reception of its echo off of an object.
+  pinMode(ultrasonic_sensor_echoPin, INPUT);
+  return pulseIn(ultrasonic_sensor_echoPin, HIGH);
+
+  
+  //Serial.print(inches);
+  //Serial.print("in, ");
+  //Serial.print(cm);
+  //Serial.print("cm");
+  //Serial.println();
+  
+  //delay(100);
+	
+}
+
+long microsecondsToInches(long microseconds)
+{
+  // According to Parallax's datasheet for the PING))), there are
+  // 73.746 microseconds per inch (i.e. sound travels at 1130 feet per
+  // second).  This gives the distance travelled by the ping, outbound
+  // and return, so we divide by 2 to get the distance of the obstacle.
+  // See: http://www.parallax.com/dl/docs/prod/acc/28015-PING-v1.3.pdf
+  return microseconds / 74 / 2;
+}
+
+long microsecondsToCentimeters(long microseconds)
+{
+  // The motor_controller_speed of sound is 340 m/s or 29 microseconds per centimeter.
+  // The ping travels out and back, so to find the distance of the
+  // object we take half of the distance travelled.
+  return microseconds / 29 / 2;
+}
