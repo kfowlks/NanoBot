@@ -1,7 +1,7 @@
 #include "IRremote.h"
 //#include <TimerOne.h>
 
-const int ir_receiver_signalPin   = 3;
+const int ir_receiver_signalPin   = 11;
 
 const int motor_controller_AIAPin = 5;
 const int motor_controller_AIBPin = 6;
@@ -13,19 +13,19 @@ const int ultrasonic_sensor_echoPin = 12;
 
 const int IR_RECEIVE_LEDPin         = 4;
 
-const int motor_controller_speed  = 255;
+const int motor_controller_speed  = 50;
 
-const int IR_UP 		= 0xFF629D;
-const int IR_DOWN 		= 0xFF329D;
-const int IR_LEFT 		= 0xFF229D;
-const int IR_RIGHT 		= 0xFF129D;
+const int IR_UP       = 0x3D9AE3F7;
+const int IR_DOWN     = 0x1BC0157B;
+const int IR_LEFT     = 0x8C22657B;
+const int IR_RIGHT    = 0x449E79F;
 
 
 /*-----( Declare objects )-----*/
 IRrecv irrecv(ir_receiver_signalPin);     // create instance of 'irrecv'
-decode_results results;      			  // create instance of 'decode_results'
+decode_results results;             // create instance of 'decode_results'
 
-boolean debug = false;
+boolean debug = true;
 
 /**
  *  NanoBot - 
@@ -48,7 +48,7 @@ boolean debug = false;
 void setup()
 {
   
-	
+  
   pinMode(IR_RECEIVE_LEDPin, OUTPUT);
   pinMode(ultrasonic_sensor_trigPin, OUTPUT);
   
@@ -62,8 +62,8 @@ void setup()
   
 
   if (debug) {
-  	Serial.begin(9600);  
-  	Serial.println("IR Receiver Button Decode"); 
+    Serial.begin(9600);  
+    Serial.println("IR Receiver Button Decode"); 
   }
   
   fadeLED( IR_RECEIVE_LEDPin );
@@ -98,19 +98,19 @@ void fadeLED( int ledPin ) {
 }
 
 void initialize_motor_driver()
-{	
-	pinMode(motor_controller_AIAPin, OUTPUT); // set pins to output
-	pinMode(motor_controller_AIBPin, OUTPUT);
-	pinMode(motor_controller_BIAPin, OUTPUT);
-	pinMode(motor_controller_BIBPin, OUTPUT);
+{ 
+  pinMode(motor_controller_AIAPin, OUTPUT); // set pins to output
+  pinMode(motor_controller_AIBPin, OUTPUT);
+  pinMode(motor_controller_BIAPin, OUTPUT);
+  pinMode(motor_controller_BIBPin, OUTPUT);
 }
 
 void go_backward()
 {
-	analogWrite(motor_controller_AIAPin, 0);
-	analogWrite(motor_controller_AIBPin, motor_controller_speed);
-	analogWrite(motor_controller_BIAPin, 0);
-	analogWrite(motor_controller_BIBPin, motor_controller_speed);
+  analogWrite(motor_controller_AIAPin, 0);
+  analogWrite(motor_controller_AIBPin, motor_controller_speed);
+  analogWrite(motor_controller_BIAPin, 0);
+  analogWrite(motor_controller_BIBPin, motor_controller_speed);
 }
 
 void go_forward()
@@ -162,8 +162,8 @@ void loop()
   if (irrecv.decode(&results)) // have we received an IR signal?
   {
 
-  if ( debug ) 
-     Serial.print( results.value, HEX); 
+  //if ( debug ) 
+    // Serial.print( results.value, HEX); 
     
     move(); 
     
@@ -175,27 +175,43 @@ void loop()
 void move() 
 {
 
+
+/*
+ * const int IR_DOWN     = 0x1BC0157B;
+const int IR_LEFT     = 0x8C22657B;
+const int IR_RIGHT    = 0x449E79F;
+**/
+
   switch(results.value)
   {
-  case IR_UP:
-	go_forward();
-	break;
-  case IR_DOWN:
-	go_backward();
-	break;
-  case IR_LEFT:
-	go_left();
-	break;
-  case IR_RIGHT:
-	go_right();
-	break;
+  case 0x3D9AE3F7:
+    Serial.print( results.value, HEX );
+    Serial.println(" UP " );
+    go_forward();
+    break;
+  case 0x1BC0157B:
+    Serial.print( results.value, HEX );
+    Serial.println(" DOWN " );
+    go_backward();
+    break;
+  case 0x8C22657B:
+    Serial.print( results.value, HEX );
+    Serial.println(" LEFT " );
+    go_left();
+    break;
+  case 0x449E79F:
+    Serial.print( results.value, HEX );
+    Serial.println(" RIGHT " );
+    go_right();
+    break;
 
   default: 
   
-	if (debug) {
-		Serial.println(" other button   " );
-		Serial.print( results.value, HEX );
-	}
+  if (debug) {
+    
+    Serial.print( results.value, HEX );
+    Serial.println(" other button   " );
+  }
 
   }// End Case
 
@@ -231,7 +247,7 @@ long checkDistance()
   //Serial.println();
   
   //delay(100);
-	
+  
 }
 
 long microsecondsToInches(long microseconds)
