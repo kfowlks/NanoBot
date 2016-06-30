@@ -1,45 +1,15 @@
-#include "IRremote.h"
-//#include <TimerOne.h>
-
-const int ir_receiver_signalPin   = 11;
-
-const int motor_controller_AIAPin = 5;
-const int motor_controller_AIBPin = 6;
-const int motor_controller_BIAPin = 9;
-const int motor_controller_BIBPin = 10; // PWM Pins
-
-const int ultrasonic_sensor_trigPin = 2;
-const int ultrasonic_sensor_echoPin = 12;
-
-const int IR_RECEIVE_LEDPin         = 3;
-
-const int motor_controller_speed  = 200;
-
-const int IR_UP       = 0x3D9AE3F7;
-const int IR_DOWN     = 0x1BC0157B;
-const int IR_LEFT     = 0x8C22657B;
-const int IR_RIGHT    = 0x449E79F;
-
- 
-/*-----( Declare objects )-----*/
-IRrecv irrecv(ir_receiver_signalPin);     // create instance of 'irrecv'
-decode_results results;             // create instance of 'decode_results'
-
-boolean debug = true;
-
-long duration, cm;
-long last_cm;
- 
-
 /**
- *  NanoBot - 
+ *  NanoBot - v1.0
+ *  Author: Jasmine Fowlks
+ *          Angela Fowlks
+ *          Kevin Fowlks
  *
  *  This basic application is a starting place for using the 3D printed two-wheeled robot 
  *  found here ( http://www.thingiverse.com/thing:1582398 ). 
  * 
  *  The hardware used in this project is listed below:
  *  
- *  Arduino nano (clone)
+ *  Arduino nano v3 (clone)
  *  Motor Controller (L9110S Dual DC motor Driver Controller Board H-bridge)
  *  Distance Measurment ( Ultrasonic Module HC-SR04 Distance Measuring )
  *  Smart Car Robot Plastic DC 3V-6V Drive Gear Motor 
@@ -49,13 +19,38 @@ long last_cm;
  * 
  **/
 
+#include "IRremote.h"
+
+const int ir_receiver_signalPin   = 11;
+
+const int motor_controller_AIAPin = 5;  // PWM Pin
+const int motor_controller_AIBPin = 6;  // PWM Pin
+const int motor_controller_BIAPin = 9;  // PWM Pin
+const int motor_controller_BIBPin = 10; // PWM Pin
+
+const int ultrasonic_sensor_trigPin = 2;
+const int ultrasonic_sensor_echoPin = 12;
+
+const int led_Pin = 3; // PWM Pin
+
+const int motor_controller_speed = 200;
+
+const int IR_UP       = 0x3D9AE3F7;
+const int IR_DOWN     = 0x1BC0157B;
+const int IR_LEFT     = 0x8C22657B;
+const int IR_RIGHT    = 0x449E79F;
+
+/*-----( Declare objects )-----*/
+IRrecv irrecv(ir_receiver_signalPin);     // create instance of 'irrecv'
+decode_results results;             // create instance of 'decode_results'
+
+long duration, cm;
+long last_cm;
+
+const boolean debug = true;
+
 void setup()
 {
-  
-  
-  //pinMode(IR_RECEIVE_LEDPin, OUTPUT);
- 
-  
   pinMode(motor_controller_AIAPin, OUTPUT);
   pinMode(motor_controller_AIBPin, OUTPUT);
   pinMode(motor_controller_BIAPin, OUTPUT);
@@ -63,16 +58,13 @@ void setup()
 
   pinMode(ultrasonic_sensor_trigPin, OUTPUT);
   pinMode(ultrasonic_sensor_echoPin, INPUT); 
-  
-  //pinMode(ultrasonic_sensor_echoPin, INPUT); 
-  
 
   if (debug) {
     Serial.begin(9600);  
     Serial.println("NanoBot v1 Debug Console");
   }
   
-  fadeLED( IR_RECEIVE_LEDPin );
+  fadeLED( led_Pin );
 
   irrecv.enableIRIn(); // Start the receiver
 
@@ -159,7 +151,7 @@ void loop()
 
   if ( cm < 65 )
   {
-     fadeLED( IR_RECEIVE_LEDPin );
+     fadeLED( led_Pin );
   }
   
   if (irrecv.decode(&results)) // have we received an IR signal?
