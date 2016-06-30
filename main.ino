@@ -11,21 +11,25 @@ const int motor_controller_BIBPin = 10; // PWM Pins
 const int ultrasonic_sensor_trigPin = 2;
 const int ultrasonic_sensor_echoPin = 12;
 
-const int IR_RECEIVE_LEDPin         = 4;
+const int IR_RECEIVE_LEDPin         = 3;
 
-const int motor_controller_speed  = 50;
+const int motor_controller_speed  = 200;
 
 const int IR_UP       = 0x3D9AE3F7;
 const int IR_DOWN     = 0x1BC0157B;
 const int IR_LEFT     = 0x8C22657B;
 const int IR_RIGHT    = 0x449E79F;
 
-
+ 
 /*-----( Declare objects )-----*/
 IRrecv irrecv(ir_receiver_signalPin);     // create instance of 'irrecv'
 decode_results results;             // create instance of 'decode_results'
 
 boolean debug = true;
+
+long duration, cm;
+long last_cm;
+ 
 
 /**
  *  NanoBot - 
@@ -49,32 +53,30 @@ void setup()
 {
   
   
-  pinMode(IR_RECEIVE_LEDPin, OUTPUT);
-  pinMode(ultrasonic_sensor_trigPin, OUTPUT);
+  //pinMode(IR_RECEIVE_LEDPin, OUTPUT);
+ 
   
   pinMode(motor_controller_AIAPin, OUTPUT);
   pinMode(motor_controller_AIBPin, OUTPUT);
   pinMode(motor_controller_BIAPin, OUTPUT);
   pinMode(motor_controller_BIBPin, OUTPUT);
+
+  pinMode(ultrasonic_sensor_trigPin, OUTPUT);
+  pinMode(ultrasonic_sensor_echoPin, INPUT); 
   
-  pinMode(ultrasonic_sensor_echoPin, INPUT); 
-  pinMode(ultrasonic_sensor_echoPin, INPUT); 
+  //pinMode(ultrasonic_sensor_echoPin, INPUT); 
   
 
   if (debug) {
     Serial.begin(9600);  
-    Serial.println("IR Receiver Button Decode"); 
+    Serial.println("NanoBot v1 Debug Console");
   }
   
   fadeLED( IR_RECEIVE_LEDPin );
-  
-  initialize_motor_driver();
-  
-  //Timer1.initialize(TIMER_US);                        // Initialise timer 1
-  //Timer1.attachInterrupt( timerIsr );
-  //attachInterrupt(digitalPinToInterrupt(ultrasonic_sensor_trigPin), checkDistance, CHANGE);
-  
+
   irrecv.enableIRIn(); // Start the receiver
+
+  initialize_motor_driver();
 }
 
 void fadeLED( int ledPin ) {
@@ -84,7 +86,7 @@ void fadeLED( int ledPin ) {
     // sets the value (range from 0 to 255):
     analogWrite(ledPin, fadeValue);         
     // wait for 30 milliseconds to see the dimming effect    
-    delay(30);                            
+    delay(50);                            
   } 
  
   // fade out from max to min in increments of 5 points:
@@ -92,7 +94,7 @@ void fadeLED( int ledPin ) {
     // sets the value (range from 0 to 255):
     analogWrite(ledPin, fadeValue);         
     // wait for 30 milliseconds to see the dimming effect    
-    delay(30);                            
+    delay(50);                            
   } 
 
 }
@@ -123,100 +125,110 @@ void go_forward()
 
 void go_left()
 {
-  analogWrite(motor_controller_AIAPin, motor_controller_speed);
+  analogWrite(motor_controller_AIAPin, (motor_controller_speed *.75) );
   analogWrite(motor_controller_AIBPin, 0);
   analogWrite(motor_controller_BIAPin, 0);
-  analogWrite(motor_controller_BIBPin, motor_controller_speed);
+  analogWrite(motor_controller_BIBPin, (motor_controller_speed *.75) );
 }
 
 void go_right()
 {
   analogWrite(motor_controller_AIAPin, 0);
-  analogWrite(motor_controller_AIBPin, motor_controller_speed);
-  analogWrite(motor_controller_BIAPin, motor_controller_speed);
+  analogWrite(motor_controller_AIBPin, (motor_controller_speed *.75) );
+  analogWrite(motor_controller_BIAPin, (motor_controller_speed *.75) );
   analogWrite(motor_controller_BIBPin, 0);
 }
 
-// --------------------------
-// timerIsr() 50uS second interrupt ISR()
-// Called every time the hardware timer 1 times out.
-// --------------------------
-void timerIsr()
-{
-    checkDistance();                                 // Schedule the trigger pulses
-    //distance_flasher();                              // Flash the onboard LED distance indicator
-}
 
+void go_stop()
+{
+  analogWrite(motor_controller_AIAPin, 0);
+  analogWrite(motor_controller_AIBPin, 0 );
+  analogWrite(motor_controller_BIAPin, 0 );
+  analogWrite(motor_controller_BIBPin, 0);
+}
 
 void loop()
 {
-  long duration, cm;
-  
+ 
   duration = checkDistance();
   
   // convert the time into a distance
   // inches = microsecondsToInches(duration);
   cm     = microsecondsToCentimeters(duration);
 
-  //Serial.println( results.value); 
+  if ( cm < 65 )
+  {
+     fadeLED( IR_RECEIVE_LEDPin );
+  }
+  
   if (irrecv.decode(&results)) // have we received an IR signal?
   {
-
-  //if ( debug ) 
-    // Serial.print( results.value, HEX); 
+    /* Output distance on button press */
+    Serial.print( cm );
+    Serial.print( " cm  ");
+    Serial.print( last_cm );
+    Serial.println( " last cm  ");
     
-    move(); 
+    move();
     
     irrecv.resume(); // receive the next value
-  }  
+  }
+
+  last_cm = cm;
 }
 
 
 void move() 
 {
 
-
-/*
- * const int IR_DOWN     = 0x1BC0157B;
-const int IR_LEFT     = 0x8C22657B;
-const int IR_RIGHT    = 0x449E79F;
-**/
-
   switch(results.value)
   {
   case 0x3D9AE3F7:
-    Serial.print( results.value, HEX );
-    Serial.println(" UP " );
+    if (debug) {
+      Serial.print( results.value, HEX );
+      Serial.println(" UP " );
+    }
     go_forward();
     break;
   case 0x1BC0157B:
-    Serial.print( results.value, HEX );
-    Serial.println(" DOWN " );
+    if (debug) {
+      Serial.print( results.value, HEX );
+      Serial.println(" DOWN " );
+    }
     go_backward();
     break;
   case 0x8C22657B:
-    Serial.print( results.value, HEX );
-    Serial.println(" LEFT " );
+    if (debug) {
+      Serial.print( results.value, HEX );
+      Serial.println(" LEFT " );
+    }
     go_left();
     break;
   case 0x449E79F:
-    Serial.print( results.value, HEX );
-    Serial.println(" RIGHT " );
-    go_right();
+      if (debug) {
+       Serial.print( results.value, HEX );
+       Serial.println(" RIGHT " );
+      }
+      go_right();
+      break;
+  case 0x488F3CBB: // STOP
+    if (debug) {
+      Serial.print( results.value, HEX );
+      Serial.println(" STOP " );
+    }
+    go_stop();  
     break;
 
-  default: 
-  
-  if (debug) {
-    
-    Serial.print( results.value, HEX );
-    Serial.println(" other button   " );
-  }
+  default:  
+    if (debug) {      
+      Serial.print( results.value, HEX );
+      Serial.println(" other button   " );
+    }
 
-  }// End Case
+  } // End Case
 
   delay(500); // Do not get immediate repeat
-
 
 }
 
@@ -227,7 +239,7 @@ long checkDistance()
 
   // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
   // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-  pinMode(ultrasonic_sensor_trigPin, OUTPUT);
+  //pinMode(ultrasonic_sensor_trigPin, OUTPUT);
   digitalWrite(ultrasonic_sensor_trigPin, LOW);
   delayMicroseconds(2);
   digitalWrite(ultrasonic_sensor_trigPin, HIGH);
@@ -237,7 +249,7 @@ long checkDistance()
   // Read the signal from the sensor: a HIGH pulse whose
   // duration is the time (in microseconds) from the sending
   // of the ping to the reception of its echo off of an object.
-  pinMode(ultrasonic_sensor_echoPin, INPUT);
+ // pinMode(ultrasonic_sensor_echoPin, INPUT);
   return pulseIn(ultrasonic_sensor_echoPin, HIGH);
   
   //Serial.print(inches);
