@@ -14,6 +14,7 @@
  *  Distance Measurment ( Ultrasonic Module HC-SR04 Distance Measuring )
  *  Smart Car Robot Plastic DC 3V-6V Drive Gear Motor 
  *  IR Remote ( Infrared Wireless Remote Control with Sensor Receiver Modules 3 pin variety )
+ *  NTE 54‑140 SPST On‑Off Subminiature Toggle
  * 
  *  
  * 
