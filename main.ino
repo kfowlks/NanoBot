@@ -22,6 +22,7 @@
 
 #include "IRremote.h"
 
+
 const int ir_receiver_signalPin   = 11;
 
 const int motor_controller_AIAPin = 5;  // PWM Pin
@@ -29,10 +30,11 @@ const int motor_controller_AIBPin = 6;  // PWM Pin
 const int motor_controller_BIAPin = 9;  // PWM Pin
 const int motor_controller_BIBPin = 10; // PWM Pin
 
-const int ultrasonic_sensor_trigPin = 2;
-const int ultrasonic_sensor_echoPin = 12;
+const int ultrasonic_sensor_trigPin = 12;
+const int ultrasonic_sensor_echoPin = 2;
 
-const int led_Pin = 3; // PWM Pin
+const int led1_Pin = 3; // PWM Pin
+const int led2_Pin = 4; // PWM Pin
 
 const int motor_controller_speed = 200;
 
@@ -60,16 +62,46 @@ void setup()
   pinMode(ultrasonic_sensor_trigPin, OUTPUT);
   pinMode(ultrasonic_sensor_echoPin, INPUT); 
 
+
+  pinMode(led1_Pin, OUTPUT);
+  pinMode(led2_Pin, OUTPUT);
+  
+
   if (debug) {
     Serial.begin(9600);  
     Serial.println("NanoBot v1 Debug Console");
   }
   
-  fadeLED( led_Pin );
+ // fadeLED( led_Pin );
 
   irrecv.enableIRIn(); // Start the receiver
 
   initialize_motor_driver();
+
+  digitalWrite(led2_Pin, HIGH);
+  digitalWrite(led1_Pin, HIGH);
+  //Scheduler.startLoop(loop2);
+  //Scheduler.startLoop(loop3);
+}
+
+
+void loop3() {
+  digitalWrite(led1_Pin, HIGH);
+
+  // IMPORTANT:
+  // When multiple tasks are running 'delay' passes control to
+  // other tasks while waiting and guarantees they get executed.
+  delay(1000);
+  digitalWrite(led1_Pin, LOW);
+  delay(1000);
+}
+
+// Task no.2: blink LED with 0.1 second delay.
+void loop2() {
+  digitalWrite(led2_Pin, HIGH);
+  delay(1100);
+  digitalWrite(led2_Pin, LOW);
+  delay(1100);
 }
 
 void fadeLED( int ledPin ) {
@@ -100,7 +132,7 @@ void initialize_motor_driver()
   pinMode(motor_controller_BIBPin, OUTPUT);
 }
 
-void go_backward()
+void go_forward()
 {
   analogWrite(motor_controller_AIAPin, 0);
   analogWrite(motor_controller_AIBPin, motor_controller_speed);
@@ -108,7 +140,7 @@ void go_backward()
   analogWrite(motor_controller_BIBPin, motor_controller_speed);
 }
 
-void go_forward()
+void go_backward()
 {
   analogWrite(motor_controller_AIAPin, motor_controller_speed);
   analogWrite(motor_controller_AIBPin, 0);
@@ -144,17 +176,21 @@ void go_stop()
 void loop()
 {
  
-  duration = checkDistance();
-  
+  duration = checkDistance();  
   // convert the time into a distance
   // inches = microsecondsToInches(duration);
   cm     = microsecondsToCentimeters(duration);
 
   if ( cm < 65 )
   {
-     fadeLED( led_Pin );
+    
   }
   
+  //loop3();
+  //loop2();
+  
+  
+   
   if (irrecv.decode(&results)) // have we received an IR signal?
   {
     /* Output distance on button press */
@@ -169,6 +205,8 @@ void loop()
   }
 
   last_cm = cm;
+
+  //yield();
 }
 
 
